@@ -1,0 +1,89 @@
+#include "cSymbolTable.h"
+#include "cSymbol.h"
+#include <unordered_map>
+#include <vector>
+
+
+using std::string;
+using std::unordered_map;
+using std::vector;
+
+// Each scope is a hash table
+using SymbolMap = unordered_map<string, cSymbol*>;
+
+// Stack of scopes (inner-most is back)
+static vector<SymbolMap*> g_scopeStack;
+
+// ------------------------------------------------------------
+// Constructor
+// ------------------------------------------------------------
+cSymbolTable::cSymbolTable()
+{
+    IncreaseScope(); // global scope
+}
+
+// ------------------------------------------------------------
+// IncreaseScope
+// ------------------------------------------------------------
+symbolTable_t *cSymbolTable::IncreaseScope()
+{
+    SymbolMap *scope = new SymbolMap();
+    g_scopeStack.push_back(scope);
+    return reinterpret_cast<symbolTable_t*>(scope);
+}
+
+// ------------------------------------------------------------
+// DecreaseScope
+// ------------------------------------------------------------
+symbolTable_t *cSymbolTable::DecreaseScope()
+{
+    if (!g_scopeStack.empty())
+    {
+        g_scopeStack.pop_back(); // DO NOT delete symbols
+    }
+
+    if (g_scopeStack.empty())
+        return nullptr;
+
+    return reinterpret_cast<symbolTable_t*>(g_scopeStack.back());
+}
+
+// ------------------------------------------------------------
+// Insert
+// ------------------------------------------------------------
+void cSymbolTable::Insert(cSymbol *sym)
+{
+    if (g_scopeStack.empty() || sym == nullptr)
+        return;
+
+    (*g_scopeStack.back())[sym->GetName()] = sym;
+}
+
+// ------------------------------------------------------------
+// Find (nested lookup)
+// ------------------------------------------------------------
+cSymbol *cSymbolTable::Find(std::string name)
+{
+    for (auto it = g_scopeStack.rbegin(); it != g_scopeStack.rend(); ++it)
+    {
+        auto found = (*it)->find(name);
+        if (found != (*it)->end())
+            return found->second;
+    }
+    return nullptr;
+}
+
+// ------------------------------------------------------------
+// FindLocal (current scope only)
+// ------------------------------------------------------------
+cSymbol *cSymbolTable::FindLocal(std::string name)
+{
+    if (g_scopeStack.empty())
+        return nullptr;
+
+    auto found = g_scopeStack.back()->find(name);
+    if (found != g_scopeStack.back()->end())
+        return found->second;
+
+    return nullptr;
+}
