@@ -8,23 +8,21 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
+// Define the static member
+long long cSymbol::nextId = 0;
+
 // Each scope is a hash table
 using SymbolMap = unordered_map<string, cSymbol*>;
 
 // Stack of scopes (inner-most is back)
 static vector<SymbolMap*> g_scopeStack;
 
-// ------------------------------------------------------------
-// Constructor
-// ------------------------------------------------------------
 cSymbolTable::cSymbolTable()
 {
     IncreaseScope(); // global scope
 }
 
-// ------------------------------------------------------------
-// IncreaseScope
-// ------------------------------------------------------------
+
 symbolTable_t *cSymbolTable::IncreaseScope()
 {
     SymbolMap *scope = new SymbolMap();
@@ -32,14 +30,12 @@ symbolTable_t *cSymbolTable::IncreaseScope()
     return reinterpret_cast<symbolTable_t*>(scope);
 }
 
-// ------------------------------------------------------------
-// DecreaseScope
-// ------------------------------------------------------------
+
 symbolTable_t *cSymbolTable::DecreaseScope()
 {
     if (!g_scopeStack.empty())
     {
-        g_scopeStack.pop_back(); // DO NOT delete symbols
+        g_scopeStack.pop_back(); 
     }
 
     if (g_scopeStack.empty())
@@ -48,9 +44,7 @@ symbolTable_t *cSymbolTable::DecreaseScope()
     return reinterpret_cast<symbolTable_t*>(g_scopeStack.back());
 }
 
-// ------------------------------------------------------------
-// Insert
-// ------------------------------------------------------------
+
 void cSymbolTable::Insert(cSymbol *sym)
 {
     if (g_scopeStack.empty() || sym == nullptr)
@@ -59,9 +53,6 @@ void cSymbolTable::Insert(cSymbol *sym)
     (*g_scopeStack.back())[sym->GetName()] = sym;
 }
 
-// ------------------------------------------------------------
-// Find (nested lookup)
-// ------------------------------------------------------------
 cSymbol *cSymbolTable::Find(std::string name)
 {
     for (auto it = g_scopeStack.rbegin(); it != g_scopeStack.rend(); ++it)
@@ -73,9 +64,7 @@ cSymbol *cSymbolTable::Find(std::string name)
     return nullptr;
 }
 
-// ------------------------------------------------------------
-// FindLocal (current scope only)
-// ------------------------------------------------------------
+
 cSymbol *cSymbolTable::FindLocal(std::string name)
 {
     if (g_scopeStack.empty())
@@ -87,3 +76,6 @@ cSymbol *cSymbolTable::FindLocal(std::string name)
 
     return nullptr;
 }
+
+// Define the global symbol table
+cSymbolTable g_symbolTable;
