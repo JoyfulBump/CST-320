@@ -20,6 +20,27 @@ static vector<SymbolMap*> g_scopeStack;
 cSymbolTable::cSymbolTable()
 {
     IncreaseScope(); // global scope
+    
+    // Initialize built-in types in order: char, int, float, long, double
+    cSymbol *charType = new cSymbol("char");
+    charType->SetIsType(true);
+    Insert(charType);
+    
+    cSymbol *intType = new cSymbol("int");
+    intType->SetIsType(true);
+    Insert(intType);
+    
+    cSymbol *floatType = new cSymbol("float");
+    floatType->SetIsType(true);
+    Insert(floatType);
+    
+    cSymbol *longType = new cSymbol("long");
+    longType->SetIsType(true);
+    Insert(longType);
+    
+    cSymbol *doubleType = new cSymbol("double");
+    doubleType->SetIsType(true);
+    Insert(doubleType);
 }
 
 

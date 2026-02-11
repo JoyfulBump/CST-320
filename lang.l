@@ -6,9 +6,8 @@
 //
 // Author: <<<< Ethan >>>>
 //
-
+#include "langparse.h"
 #include "lex.h"
-#include "tokens.h"
 #include "cSymbolTable.h"
 
 // Macros that can be used to create debug output from the scanner
@@ -51,18 +50,13 @@ string_lit     \"[^\"]*\"
 "while"/[^_a-zA-Z0-9]        DO_RETURN(WHILE)
 "print"/[^_a-zA-Z0-9]        DO_RETURN(PRINT)
 "prints"/[^_a-zA-Z0-9]       DO_RETURN(PRINTS)
-"char"/[^_a-zA-Z0-9]         DO_RETURN(CHAR)
-"int"/[^_a-zA-Z0-9]          DO_RETURN(INT)
-"long"/[^_a-zA-Z0-9]         DO_RETURN(LONG)
-"float"/[^_a-zA-Z0-9]        DO_RETURN(FLOAT)
-"double"/[^_a-zA-Z0-9]       DO_RETURN(DOUBLE)
 "struct"/[^_a-zA-Z0-9]       DO_RETURN(STRUCT)
 "array"/[^_a-zA-Z0-9]        DO_RETURN(ARRAY)
 "return"/[^_a-zA-Z0-9]       DO_RETURN(RETURN)
 
 
-"{"            { g_symbolTable.IncreaseScope(); return '{'; }
-"}"            { g_symbolTable.DecreaseScope(); return '}'; }
+"{"            DO_RETURN('{')
+"}"            DO_RETURN('}')
 
 "!="           DO_RETURN(NOT_EQUALS)
 "=="           DO_RETURN(EQUALS)
@@ -72,9 +66,9 @@ string_lit     \"[^\"]*\"
 "<="           DO_RETURN(LE)
 
 
-{int_const}    DO_RETURN(INT_VAL)
-{float_const}  DO_RETURN(FLOAT_VAL)
-{string_lit}   DO_RETURN(STRING_LIT)
+{int_const}    { yylval.int_val = atoi(yytext); DO_RETURN(INT_VAL); }
+{float_const}  { yylval.float_val = atof(yytext); DO_RETURN(FLOAT_VAL); }
+{string_lit}   { yylval.str_val = new std::string(yytext); DO_RETURN(STRING_LIT); }
 
 {ident}        { DO_RETURN(Process_ID(yytext)); }
 
@@ -107,21 +101,21 @@ string_lit     \"[^\"]*\"
 
 int Process_ID(const char* text)
 {
-    // Try to find symbol in the current scope first
-    cSymbol* sym = g_symbolTable.FindLocal(text);
-
-    if (!sym)
+    // Check if this identifier is a known type
+    cSymbol* sym = g_symbolTable.Find(text);
+    
+    if (sym && sym->IsType())
     {
-        // Not found: create new symbol and insert it into current scope
-        sym = new cSymbol(std::string(text));
-        g_symbolTable.Insert(sym);
+        // It's a type - return the symbol
+        yylval.symbol = sym;
+        return TYPE_ID;
     }
-
-    // Assign the symbol to yylval.symbol for the parser
-    yylval.symbol = sym;
-
-    // Return the token type for an identifier
-    return IDENTIFIER;
+    else
+    {
+        // It's a regular identifier - return the name as a string
+        yylval.str_val = new std::string(text);
+        return IDENTIFIER;
+    }
 }
 // This function allows us to do extra processing on each token
 // It is used to generate lexer debug info

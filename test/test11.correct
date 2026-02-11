@@ -2,9 +2,8 @@
 <program>
   <block>
     <stmts>
-      <print>
-        <int value="5"/>
-      </print>
+      <prints value="This is a test"/>
+      <prints value="This is a another test"/>
     </stmts>
   </block>
 </program>

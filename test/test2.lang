@@ -1,31 +1,7 @@
+program
 {
-  a;
-  b;
-  {
-    a;
-    b;
-    c;
-    a;
-    b;
-    c;
-  }
-  c;
-  a;
-  b;
-  c;
-  {
-    a;
-    b;
-    {
-       c;
-       c;
-    }
-    c;
-    a;
-    b;
-    c;
-  }
-  a;
-  b;
-  c;
+   print(1);
+   print(2);
+   print(3);
+   print(4);
 }
