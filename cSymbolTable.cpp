@@ -1,5 +1,6 @@
 #include "cSymbolTable.h"
 #include "cSymbol.h"
+#include "cBaseTypeNode.h"
 #include <unordered_map>
 #include <vector>
 
@@ -22,24 +23,34 @@ cSymbolTable::cSymbolTable()
     IncreaseScope(); // global scope
     
     // Initialize built-in types in order: char, int, float, long, double
+    // char: 1 byte, not float
+    cBaseTypeNode *charTypeNode = new cBaseTypeNode("char", 1, false);
     cSymbol *charType = new cSymbol("char");
-    charType->SetIsType(true);
+    charType->SetDecl(charTypeNode);
     Insert(charType);
     
+    // int: 4 bytes, not float
+    cBaseTypeNode *intTypeNode = new cBaseTypeNode("int", 4, false);
     cSymbol *intType = new cSymbol("int");
-    intType->SetIsType(true);
+    intType->SetDecl(intTypeNode);
     Insert(intType);
     
+    // float: 4 bytes, is float
+    cBaseTypeNode *floatTypeNode = new cBaseTypeNode("float", 4, true);
     cSymbol *floatType = new cSymbol("float");
-    floatType->SetIsType(true);
+    floatType->SetDecl(floatTypeNode);
     Insert(floatType);
     
+    // long: 8 bytes, not float
+    cBaseTypeNode *longTypeNode = new cBaseTypeNode("long", 8, false);
     cSymbol *longType = new cSymbol("long");
-    longType->SetIsType(true);
+    longType->SetDecl(longTypeNode);
     Insert(longType);
     
+    // double: 8 bytes, is float
+    cBaseTypeNode *doubleTypeNode = new cBaseTypeNode("double", 8, true);
     cSymbol *doubleType = new cSymbol("double");
-    doubleType->SetIsType(true);
+    doubleType->SetDecl(doubleTypeNode);
     Insert(doubleType);
 }
 

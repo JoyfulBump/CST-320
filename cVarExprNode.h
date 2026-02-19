@@ -35,4 +35,24 @@ class cVarExprNode : public cExprNode
 
         virtual string NodeType() { return string("varref"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
+        
+        // GetDecl returns the declaration of the variable
+        virtual cDeclNode *GetDecl()
+        {
+            // For simple variable: return decl from symbol
+            cSymbol *sym = dynamic_cast<cSymbol*>(GetChild(0));
+            if (sym != nullptr)
+                return sym->GetDecl();
+            return nullptr;
+        }
+        
+        // GetType returns the type of the variable reference
+        virtual cDeclNode *GetType()
+        {
+            // For simple variable: return its type
+            cSymbol *sym = dynamic_cast<cSymbol*>(GetChild(0));
+            if (sym != nullptr && sym->GetDecl() != nullptr)
+                return sym->GetDecl()->GetType();
+            return nullptr;
+        }
 };

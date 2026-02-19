@@ -1,0 +1,10 @@
+program
+{
+    // Test duplicate variable definition
+    int x;
+    int x;  // Error: already defined
+    
+    // Test undefined variable
+    int z;
+    z = y;  // Error: y not defined
+}

@@ -8,6 +8,7 @@
 
 using std::string;
 #include "cAstNode.h"
+#include "cDeclNode.h"
 
 class cSymbol : public cAstNode
 {
@@ -17,7 +18,7 @@ class cSymbol : public cAstNode
         {
             m_id = ++nextId;
             m_name = name;
-            m_isType = false;
+            m_decl = nullptr;
         }
 
         // Return name of symbol
@@ -25,9 +26,19 @@ class cSymbol : public cAstNode
         // Return ID of symbol
         long long GetId() { return m_id; }
         
-        // Type tracking
-        void SetIsType(bool isType) { m_isType = isType; }
-        bool IsType() { return m_isType; }
+        // Decl management
+        void SetDecl(cDeclNode *decl) { m_decl = decl; }
+        cDeclNode *GetDecl() { return m_decl; }
+        
+        // Type checking - can be overridden by subclasses
+        virtual bool IsArray()  { return m_decl != nullptr && m_decl->IsArray(); }
+        virtual bool IsStruct() { return m_decl != nullptr && m_decl->IsStruct(); }
+        virtual bool IsFunc()   { return m_decl != nullptr && m_decl->IsFunc(); }
+        virtual bool IsVar()    { return m_decl != nullptr && m_decl->IsVar(); }
+        virtual bool IsFloat()  { return m_decl != nullptr && m_decl->IsFloat(); }
+        virtual bool IsInt()    { return m_decl != nullptr && m_decl->IsInt(); }
+        virtual bool IsChar()   { return m_decl != nullptr && m_decl->IsChar(); }
+        virtual int  GetSize()  { return m_decl != nullptr ? m_decl->GetSize() : 0; }
 
         virtual string AttributesToString() 
         {
@@ -44,5 +55,5 @@ class cSymbol : public cAstNode
         static long long nextId;    // keeps track of unique symbol IDs
         long long m_id;             // Unique ID for this symbol
         string m_name;              // Symbol name
-        bool m_isType;              // True if this symbol represents a type
+        cDeclNode *m_decl;          // Declaration node for this symbol
 };

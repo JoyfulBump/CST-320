@@ -13,6 +13,10 @@
 
 #include "cAstNode.h"
 #include "cExprNode.h"
+#include "cSymbolTable.h"
+#include "cSymbol.h"
+
+extern cSymbolTable g_symbolTable;
 
 class cFloatExprNode : public cExprNode
 {
@@ -27,6 +31,15 @@ class cFloatExprNode : public cExprNode
         {
             return " value=\"" + std::to_string(m_value) + "\"";
         }
+        
+        virtual cDeclNode *GetType()
+        {
+            cSymbol *floatSym = g_symbolTable.Find("float");
+            if (floatSym != nullptr && floatSym->GetDecl() != nullptr)
+                return floatSym->GetDecl()->GetType();
+            return nullptr;
+        }
+        
         virtual string NodeType() { return string("float"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
     protected:

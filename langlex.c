@@ -2204,7 +2204,7 @@ int Process_ID(const char* text)
     // Check if this identifier is a known type
     cSymbol* sym = g_symbolTable.Find(text);
     
-    if (sym && sym->IsType())
+    if (sym && sym->GetDecl() && sym->GetDecl()->IsType())
     {
         // It's a type - return the symbol
         yylval.symbol = sym;

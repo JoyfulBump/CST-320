@@ -22,6 +22,15 @@ class cVarDeclNode : public cDeclNode
             AddChild(name);
         }
 
+        virtual bool IsVar() { return true; }
+        virtual cDeclNode *GetType() 
+        { 
+            cSymbol *typeSym = dynamic_cast<cSymbol*>(GetChild(0));
+            if (typeSym != nullptr && typeSym->GetDecl() != nullptr)
+                return typeSym->GetDecl()->GetType();
+            return nullptr;
+        }
+
         virtual string NodeType() { return string("var_decl"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
 };

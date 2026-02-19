@@ -1,0 +1,32 @@
+program
+{
+    // Test 1: Duplicate variable definition
+    int x;
+    int x;  // Should error: Symbol x already defined in current scope
+    
+    // Test 2: Undefined variable reference
+    y = 5;  // Should error: Symbol y not defined
+    
+    // Test 3: Function declarations with matching signatures (OK)
+    int foo();
+    int foo();  // OK - same signature
+    
+    // Test 4: Function with definition
+    int bar()
+    {
+        return 1;
+    }
+    
+    // Test 5: Multiple definitions (should error)
+    int bar()  // Should error: bar already has a definition
+    {
+        return 2;
+    }
+    
+    // Test 6: Different return type (should error)
+    float foo();  // Should error: foo previously declared with different return type
+    
+    // Test 7: Different parameter count (should error)
+    int baz();
+    int baz(int a);  // Should error: baz redeclared with a different number of parameters
+}

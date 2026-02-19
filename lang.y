@@ -19,7 +19,6 @@
 }
 
 %locations
-
  /* union defines the type for lexical values */
 %union{
     int             int_val;
@@ -36,10 +35,17 @@
     }
 
 %{
-    int yyerror(const char *msg);
 
+   #define CHECK_ERROR() { if (g_semanticErrorHappened) \
+    { g_semanticErrorHappened = false; } }
+    #define PROP_ERROR() { if (g_semanticErrorHappened) \
+    { g_semanticErrorHappened = false; YYERROR; } }
+
+    int yyerror(const char *msg);
+    void SemanticParseError(std::string error);
     extern cSymbolTable g_symbolTable;
     cAstNode *yyast_root;
+    static bool g_semanticErrorHappened = false;
 %}
 
 %start  program
@@ -128,57 +134,283 @@ decl:       var_decl ';'
 
 var_decl:   TYPE_ID IDENTIFIER
                                     { 
-                                      cSymbol* newSym = new cSymbol(*$2);
-                                      g_symbolTable.Insert(newSym);
-                                      $$ = new cVarDeclNode($1, newSym);
+                                      // Check for duplicate definition in current scope
+                                      cSymbol* existing = g_symbolTable.FindLocal(*$2);
+                                      cSymbol* useSym = nullptr;
+                                      
+                                      if (existing != nullptr)
+                                      {
+                                          SemanticParseError("Symbol " + *$2 + " already defined in current scope");
+                                          useSym = existing; // Reuse existing to continue parsing
+                                      }
+                                      else
+                                      {
+                                          useSym = new cSymbol(*$2);
+                                          g_symbolTable.Insert(useSym);
+                                      }
+                                      
+                                      cVarDeclNode* varDecl = new cVarDeclNode($1, useSym);
+                                      if (existing == nullptr)
+                                      {
+                                          useSym->SetDecl(varDecl);
+                                      }
+                                      $$ = varDecl;
                                       delete $2;
+                                      CHECK_ERROR();
                                     }
 struct_decl:  STRUCT open decls close IDENTIFIER
                                 { 
-                                  cSymbol* newSym = new cSymbol(*$5);
-                                  newSym->SetIsType(true);
-                                  g_symbolTable.Insert(newSym);
-                                  $$ = new cStructDeclNode((cDeclsNode*)$3, newSym);
+                                  // Check for duplicate definition in current scope
+                                  cSymbol* existing = g_symbolTable.FindLocal(*$5);
+                                  cSymbol* useSym = nullptr;
+                                  
+                                  if (existing != nullptr)
+                                  {
+                                      SemanticParseError("Symbol " + *$5 + " already defined in current scope");
+                                      useSym = existing; // Reuse existing to continue parsing
+                                  }
+                                  else
+                                  {
+                                      useSym = new cSymbol(*$5);
+                                      g_symbolTable.Insert(useSym);
+                                  }
+                                  
+                                  cStructDeclNode* structDecl = new cStructDeclNode((cDeclsNode*)$3, useSym);
+                                  if (existing == nullptr)
+                                  {
+                                      useSym->SetDecl(structDecl);
+                                  }
+                                  $$ = structDecl;
                                   delete $5;
+                                  CHECK_ERROR();
                                 }
 array_decl:   ARRAY TYPE_ID '[' INT_VAL ']' IDENTIFIER
                                 { 
-                                  cSymbol* newSym = new cSymbol(*$6);
-                                  newSym->SetIsType(true);
-                                  g_symbolTable.Insert(newSym);
-                                  $$ = new cArrayDeclNode($2, $4, newSym);
+                                  // Check for duplicate definition in current scope
+                                  cSymbol* existing = g_symbolTable.FindLocal(*$6);
+                                  cSymbol* useSym = nullptr;
+                                  
+                                  if (existing != nullptr)
+                                  {
+                                      SemanticParseError("Symbol " + *$6 + " already defined in current scope");
+                                      useSym = existing; // Reuse existing to continue parsing
+                                  }
+                                  else
+                                  {
+                                      useSym = new cSymbol(*$6);
+                                      g_symbolTable.Insert(useSym);
+                                  }
+                                  
+                                  cArrayDeclNode* arrayDecl = new cArrayDeclNode($2, $4, useSym);
+                                  if (existing == nullptr)
+                                  {
+                                      useSym->SetDecl(arrayDecl);
+                                  }
+                                  $$ = arrayDecl;
                                   delete $6;
+                                  CHECK_ERROR();
                                 }
 
 func_decl:  func_header ';'
-                                { $$ = $1; g_symbolTable.DecreaseScope(); }
+                                { 
+                                  cFuncDeclNode* funcDecl = (cFuncDeclNode*)$1;
+                                  
+                                  // If there's an existing function with body, copy it to this declaration
+                                  cSymbol* funcSym = funcDecl->GetFuncSymbol();
+                                  if (funcSym != nullptr)
+                                  {
+                                      cSymbol* existing = g_symbolTable.Find(funcSym->GetName());
+                                      if (existing != nullptr && existing->IsFunc() && existing->GetDecl() != funcDecl)
+                                      {
+                                          cFuncDeclNode* existingFunc = dynamic_cast<cFuncDeclNode*>(existing->GetDecl());
+                                          if (existingFunc != nullptr)
+                                          {
+                                              funcDecl->CopyBodyFrom(existingFunc);
+                                          }
+                                      }
+                                  }
+                                  
+                                  $$ = $1; 
+                                  g_symbolTable.DecreaseScope(); 
+                                }
         |   func_header  '{' decls stmts '}'
                                 { 
-                                  ((cFuncDeclNode*)$1)->AddChild($3);
-                                  ((cFuncDeclNode*)$1)->AddChild($4);
+                                  cFuncDeclNode* funcDecl = (cFuncDeclNode*)$1;
+                                  
+                                  funcDecl->AddChild($3);
+                                  funcDecl->AddChild($4);
+                                  
+                                  // Check for multiple definitions and update symbol
+                                  cSymbol* funcSym = funcDecl->GetFuncSymbol();
+                                  if (funcSym != nullptr)
+                                  {
+                                      cSymbol* existing = g_symbolTable.Find(funcSym->GetName());
+                                      if (existing != nullptr && existing->IsFunc())
+                                      {
+                                          cFuncDeclNode* existingFunc = dynamic_cast<cFuncDeclNode*>(existing->GetDecl());
+                                          if (existingFunc != nullptr && existingFunc->HasBody() && existingFunc != funcDecl)
+                                          {
+                                              SemanticParseError(funcSym->GetName() + " already has a definition");
+                                          }
+                                      }
+                                      
+                                      // Always update symbol to point to the definition with body
+                                      if (existing != nullptr)
+                                      {
+                                          existing->SetDecl(funcDecl);
+                                      }
+                                  }
+                                  
                                   $$ = $1;
                                   g_symbolTable.DecreaseScope();
                                 }
         |   func_header  '{' stmts '}'
                                 { 
-                                  ((cFuncDeclNode*)$1)->AddChild($3);
+                                  cFuncDeclNode* funcDecl = (cFuncDeclNode*)$1;
+                                  
+                                  funcDecl->AddChild($3);
+                                  
+                                  // Check for multiple definitions and update symbol
+                                  cSymbol* funcSym = funcDecl->GetFuncSymbol();
+                                  if (funcSym != nullptr)
+                                  {
+                                      cSymbol* existing = g_symbolTable.Find(funcSym->GetName());
+                                      if (existing != nullptr && existing->IsFunc())
+                                      {
+                                          cFuncDeclNode* existingFunc = dynamic_cast<cFuncDeclNode*>(existing->GetDecl());
+                                          if (existingFunc != nullptr && existingFunc->HasBody() && existingFunc != funcDecl)
+                                          {
+                                              SemanticParseError(funcSym->GetName() + " already has a definition");
+                                          }
+                                      }
+                                      
+                                      // Always update symbol to point to the definition with body
+                                      if (existing != nullptr)
+                                      {
+                                          existing->SetDecl(funcDecl);
+                                      }
+                                  }
+                                  
                                   $$ = $1;
                                   g_symbolTable.DecreaseScope();
                                 }
 func_header: func_prefix paramsspec ')'
                                 { 
-                                  ((cFuncDeclNode*)$1)->AddChild($2);
+                                  cFuncDeclNode* newFunc = (cFuncDeclNode*)$1;
+                                  newFunc->AddChild($2);
+                                  
+                                  // Get the symbol name
+                                  cSymbol* funcSym = newFunc->GetFuncSymbol();
+                                  if (funcSym != nullptr)
+                                  {
+                                      cSymbol* existing = g_symbolTable.Find(funcSym->GetName());
+                                      if (existing != nullptr && existing->IsFunc() && existing->GetDecl() != newFunc)
+                                      {
+                                          // Validate against existing function
+                                          cFuncDeclNode* existingFunc = dynamic_cast<cFuncDeclNode*>(existing->GetDecl());
+                                          if (existingFunc != nullptr)
+                                          {
+                                              // Check return type
+                                              if (existingFunc->GetType() != newFunc->GetType())
+                                              {
+                                                  SemanticParseError(funcSym->GetName() + " previously declared with different return type");
+                                              }
+                                              
+                                              // Check parameter count
+                                              if (existingFunc->GetNumParams() != newFunc->GetNumParams())
+                                              {
+                                                  SemanticParseError(funcSym->GetName() + " redeclared with a different number of parameters");
+                                              }
+                                          }
+                                      }
+                                  }
+                                  
                                   $$ = $1;
                                 }
         |    func_prefix ')'
-                            { $$ = $1; }
+                            { 
+                              cFuncDeclNode* newFunc = (cFuncDeclNode*)$1;
+                              
+                              // Get the symbol name
+                              cSymbol* funcSym = newFunc->GetFuncSymbol();
+                              if (funcSym != nullptr)
+                              {
+                                  cSymbol* existing = g_symbolTable.Find(funcSym->GetName());
+                                  if (existing != nullptr && existing->IsFunc() && existing->GetDecl() != newFunc)
+                                  {
+                                      // Validate against existing function
+                                      cFuncDeclNode* existingFunc = dynamic_cast<cFuncDeclNode*>(existing->GetDecl());
+                                      if (existingFunc != nullptr)
+                                      {
+                                          // Check return type
+                                          if (existingFunc->GetType() != newFunc->GetType())
+                                          {
+                                              SemanticParseError(funcSym->GetName() + " previously declared with different return type");
+                                          }
+                                          
+                                          // Check parameter count
+                                          if (existingFunc->GetNumParams() != newFunc->GetNumParams())
+                                          {
+                                              SemanticParseError(funcSym->GetName() + " redeclared with a different number of parameters");
+                                          }
+                                      }
+                                  }
+                              }
+                              
+                              $$ = $1; 
+                            }
 func_prefix: TYPE_ID IDENTIFIER '('
                                 { 
-                                  cSymbol* newSym = new cSymbol(*$2);
-                                  g_symbolTable.Insert(newSym);
+                                  cSymbol* existingLocal = g_symbolTable.FindLocal(*$2);
+                                  cSymbol* existingAny = g_symbolTable.Find(*$2);
+                                  cSymbol* useSym = nullptr;
+                                  cFuncDeclNode* funcDecl = nullptr;
+                                  bool shouldSetDecl = false;
+                                  
+                                  if (existingLocal != nullptr)
+                                  {
+                                      // Symbol exists in current scope - check if it's a function
+                                      if (!existingLocal->IsFunc())
+                                      {
+                                          SemanticParseError("Symbol " + *$2 + " already defined in current scope");
+                                          // Still create new symbol to continue
+                                          useSym = new cSymbol(*$2);
+                                          g_symbolTable.Insert(useSym);
+                                          shouldSetDecl = true;
+                                      }
+                                      else
+                                      {
+                                          // It's a function in current scope - reuse it
+                                          useSym = existingLocal;
+                                          shouldSetDecl = false; // Don't update decl yet - will be done later
+                                      }
+                                  }
+                                  else if (existingAny != nullptr)
+                                  {
+                                      // Symbol exists in outer scope - just reuse it, don't insert or update decl
+                                      useSym = existingAny;
+                                      shouldSetDecl = false;
+                                  }
+                                  else
+                                  {
+                                      // No symbol exists at all - create new one
+                                      useSym = new cSymbol(*$2);
+                                      g_symbolTable.Insert(useSym);
+                                      shouldSetDecl = true;
+                                  }
+                                  
+                                  funcDecl = new cFuncDeclNode($1, useSym);
+                                  
+                                  // Only set decl for brand new symbols
+                                  if (shouldSetDecl)
+                                  {
+                                      useSym->SetDecl(funcDecl);
+                                  }
+                                  
                                   g_symbolTable.IncreaseScope();
-                                  $$ = new cFuncDeclNode($1, newSym);
+                                  $$ = funcDecl;
                                   delete $2;
+                                  CHECK_ERROR();
                                 }
 paramsspec:  paramsspec ',' paramspec
                                 { 
@@ -219,13 +451,39 @@ stmt:       IF '(' expr ')' stmts ENDIF ';'
 
 func_call:  IDENTIFIER '(' params ')'
                                     { 
-                                      cSymbol* sym = g_symbolTable.Find(*$1);
+                                      cSymbol* sym = g_symbolTable.FindLocal(*$1);
+                                      if (sym == nullptr) {
+                                          sym = g_symbolTable.Find(*$1);
+                                          if (sym != nullptr) {
+                                              // Symbol exists in outer scope - create local copy
+                                              sym = new cSymbol(*$1);
+                                              g_symbolTable.Insert(sym);
+                                          } else {
+                                              SemanticParseError("Symbol " + *$1 + " not defined");
+                                              sym = new cSymbol(*$1);
+                                              g_symbolTable.Insert(sym);
+                                          }
+                                      }
+                                      CHECK_ERROR();
                                       $$ = new cFuncCallNode(sym, $3);
                                       delete $1;
                                     }
-        |   IDENTIFIER '(' ')'
+        |   IDENTIFIER '('  ')'
                             { 
-                              cSymbol* sym = g_symbolTable.Find(*$1);
+                              cSymbol* sym = g_symbolTable.FindLocal(*$1);
+                              if (sym == nullptr) {
+                                  sym = g_symbolTable.Find(*$1);
+                                  if (sym != nullptr) {
+                                      // Symbol exists in outer scope - create local copy
+                                      sym = new cSymbol(*$1);
+                                      g_symbolTable.Insert(sym);
+                                  } else {
+                                      SemanticParseError("Symbol " + *$1 + " not defined");
+                                      sym = new cSymbol(*$1);
+                                      g_symbolTable.Insert(sym);
+                                  }
+                              }
+                              CHECK_ERROR();
                               $$ = new cFuncCallNode(sym);
                               delete $1;
                             }
@@ -248,9 +506,11 @@ varpart:  IDENTIFIER
                                 { 
                                   $$ = g_symbolTable.Find(*$1);
                                   if ($$ == nullptr) {
+                                      SemanticParseError("Symbol " + *$1 + " not defined");
                                       $$ = new cSymbol(*$1);
                                   }
                                   delete $1;
+                                  CHECK_ERROR();
                                 }
 
 params:   params ',' param
@@ -306,3 +566,13 @@ int yyerror(const char *msg)
 
     return 0;
 }
+
+// Function that gets called when a semantic error happens
+void SemanticParseError(std::string error)
+{
+    std::cout << "ERROR: " << error << " near line " 
+              << yylineno << "\n";
+    g_semanticErrorHappened = true;
+    yynerrs++;
+}
+
