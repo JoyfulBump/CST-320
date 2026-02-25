@@ -11,6 +11,9 @@
 #include "cAstNode.h"
 #include "cExprNode.h"
 #include "cSymbol.h"
+#include "cParamsNode.h"
+
+class cFuncDeclNode;  // Forward declaration
 
 class cFuncCallNode : public cExprNode
 {
@@ -47,5 +50,24 @@ class cFuncCallNode : public cExprNode
             if (funcSym != nullptr && funcSym->GetDecl() != nullptr)
                 return funcSym->GetDecl()->GetType();
             return nullptr;
+        }
+        
+        // Public accessors for semantic checking
+        cSymbol* GetFuncSymbol() 
+        { 
+            return dynamic_cast<cSymbol*>(GetChild(0));
+        }
+        
+        cParamsNode* GetParams() 
+        { 
+            if (NumChildren() >= 2)
+                return dynamic_cast<cParamsNode*>(GetChild(1));
+            return nullptr;
+        }
+        
+        int GetNumArgs()
+        {
+            cParamsNode *params = GetParams();
+            return params ? params->GetNumParams() : 0;
         }
 };

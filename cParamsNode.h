@@ -25,6 +25,13 @@ class cParamsNode : public cAstNode
         {
             AddChild(param);
         }
+        
+        // Public accessors for semantic checking
+        int GetNumParams() { return NumChildren(); }
+        cExprNode* GetParam(int index) 
+        { 
+            return dynamic_cast<cExprNode*>(GetChild(index));
+        }
 
         virtual string NodeType() { return string("params"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }

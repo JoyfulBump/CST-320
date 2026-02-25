@@ -57,6 +57,12 @@ class cFuncDeclNode : public cDeclNode
             return nullptr;
         }
         
+        virtual string GetName() 
+        { 
+            cSymbol *sym = GetFuncSymbol();
+            return sym ? sym->GetName() : "";
+        }
+        
         // Check if function has a body (definition vs declaration)
         bool HasBody()
         {
@@ -84,6 +90,16 @@ class cFuncDeclNode : public cDeclNode
                 }
             }
             return 0; // No parameters
+        }
+        
+        // Get the parameter list
+        cParamListNode* GetParamList()
+        {
+            if (NumChildren() >= 3)
+            {
+                return dynamic_cast<cParamListNode*>(GetChild(2));
+            }
+            return nullptr;
         }
         
         // Get the function's symbol (name)

@@ -44,6 +44,12 @@ class cStructDeclNode : public cDeclNode
             }
             return total;
         }
+        
+        virtual string GetName() 
+        { 
+            cSymbol *sym = dynamic_cast<cSymbol*>(GetChild(1));
+            return sym ? sym->GetName() : "";
+        }
 
         virtual string NodeType() { return string("struct_decl"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }

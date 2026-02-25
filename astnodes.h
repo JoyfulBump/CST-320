@@ -18,6 +18,7 @@
 #include "cStmtsNode.h"
 #include "cDeclNode.h"
 #include "cDeclsNode.h"
+#include "cBaseTypeNode.h"
 #include "cVarDeclNode.h"
 #include "cStructDeclNode.h"
 #include "cFuncDeclNode.h"

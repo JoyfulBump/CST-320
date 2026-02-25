@@ -32,6 +32,10 @@ class cVarExprNode : public cExprNode
         {
             cAstNode::AddChild(child);
         }
+        
+        // Public accessors for semantic checking
+        int GetNumChildren() { return NumChildren(); }
+        cAstNode* GetChildAt(int index) { return GetChild(index); }
 
         virtual string NodeType() { return string("varref"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
