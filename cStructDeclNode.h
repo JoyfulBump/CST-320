@@ -26,24 +26,8 @@ class cStructDeclNode : public cDeclNode
         virtual bool IsStruct() { return true; }
         virtual bool IsType() { return true; }
         virtual cDeclNode *GetType() { return this; }
-        virtual int GetSize()
-        {
-            // Sum of all member sizes
-            int total = 0;
-            cDeclsNode *decls = dynamic_cast<cDeclsNode*>(GetChild(0));
-            if (decls != nullptr)
-            {
-                for (int i = 0; i < decls->GetNumDecls(); i++)
-                {
-                    cDeclNode *decl = decls->GetDecl(i);
-                    if (decl != nullptr)
-                    {
-                        total += decl->GetSize();
-                    }
-                }
-            }
-            return total;
-        }
+        // GetSize just returns the stored value - computation done in visitor
+        virtual int GetSize() { return m_size; }
         
         virtual string GetName() 
         { 
@@ -53,4 +37,22 @@ class cStructDeclNode : public cDeclNode
 
         virtual string NodeType() { return string("struct_decl"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
+        
+        cDeclsNode* GetDecls()
+        {
+            if (HasChildren())
+                return dynamic_cast<cDeclsNode*>(GetChild(0));
+            return nullptr;
+        }
+        
+        virtual string AttributesToString()
+        {
+            string result = "";
+            if (m_size > 0 || m_offset > 0)
+            {
+                result += " size=\"" + std::to_string(m_size) + "\"";
+                result += " offset=\"" + std::to_string(m_offset) + "\"";
+            }
+            return result;
+        }
 };

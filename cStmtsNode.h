@@ -25,6 +25,10 @@ class cStmtsNode : public cAstNode
         {
             AddChild(stmt);
         }
+        
+        // Public accessors for children
+        int GetNumStmts() { return NumChildren(); }
+        cStmtNode* GetStmt(int index) { return dynamic_cast<cStmtNode*>(GetChild(index)); }
 
         virtual string NodeType() { return string("stmts"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }

@@ -42,7 +42,7 @@ class cWhileNode;
 class cVisitor
 {
     public:
-        cVisitor() {}
+        cVisitor() : m_offset(0), m_highWaterMark(0) {}
 
         void VisitAllNodes(cAstNode *node);
 
@@ -74,4 +74,8 @@ class cVisitor
         virtual void Visit(cVarDeclNode *node);
         virtual void Visit(cVarExprNode *node);
         virtual void Visit(cWhileNode *node);
+        
+    protected:
+        int m_offset;
+        int m_highWaterMark;
 };

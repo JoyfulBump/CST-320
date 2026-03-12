@@ -20,13 +20,23 @@ class cArrayDeclNode : public cDeclNode
         {
             AddChild(type);
             AddChild(name);
-            m_size = size;
+            m_count = size;  // Store the array dimension separately
         }
 
         virtual string AttributesToString() 
         {
-            return " count=\"" + std::to_string(m_size) + "\"";
+            string result = "";
+            if (m_size > 0 || m_offset > 0)
+            {
+                result += " count=\"" + std::to_string(m_count) + "\"";
+                result += " size=\"" + std::to_string(m_size) + "\"";
+                result += " offset=\"" + std::to_string(m_offset) + "\"";
+            }
+            return result;
         }
+        
+        // Getter for array dimension
+        int GetCount() { return m_count; }
 
         virtual bool IsArray() { return true; }
         virtual bool IsType() { return true; }
@@ -37,11 +47,19 @@ class cArrayDeclNode : public cDeclNode
                 return typeSym->GetDecl()->GetType();
             return nullptr;
         }
+
+        cDeclNode *GetBaseDecl()
+        {
+            cSymbol *typeSym = dynamic_cast<cSymbol*>(GetChild(0));
+            if (typeSym != nullptr)
+                return typeSym->GetDecl();
+            return nullptr;
+        }
         virtual int GetSize()
         {
             cSymbol *typeSym = dynamic_cast<cSymbol*>(GetChild(0));
             if (typeSym != nullptr && typeSym->GetDecl() != nullptr)
-                return m_size * typeSym->GetDecl()->GetSize();
+                return m_count * typeSym->GetDecl()->GetSize();
             return 0;
         }
         
@@ -55,5 +73,5 @@ class cArrayDeclNode : public cDeclNode
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
     
     protected:
-        int m_size;
+        int m_count;  // Number of elements in the array
 };

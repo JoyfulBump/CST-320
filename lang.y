@@ -44,8 +44,57 @@
     int yyerror(const char *msg);
     void SemanticParseError(std::string error);
     extern cSymbolTable g_symbolTable;
+    extern bool g_legacyMode;
     cAstNode *yyast_root;
     static bool g_semanticErrorHappened = false;
+
+    static cSymbol* FindStructMemberSymbol(cDeclNode *typeDecl, const std::string &memberName)
+    {
+        if (typeDecl == nullptr) return nullptr;
+
+        cDeclNode *resolvedType = typeDecl->GetType();
+        cStructDeclNode *structDecl = dynamic_cast<cStructDeclNode*>(resolvedType);
+        if (structDecl == nullptr) return nullptr;
+
+        cDeclsNode *members = structDecl->GetDecls();
+        if (members == nullptr) return nullptr;
+
+        for (int i = 0; i < members->GetNumDecls(); i++)
+        {
+            cDeclNode *memberDecl = members->GetDecl(i);
+            if (memberDecl != nullptr && memberDecl->IsVar() && memberDecl->GetName() == memberName)
+            {
+                cVarDeclNode *varDecl = static_cast<cVarDeclNode*>(memberDecl);
+                return varDecl->GetSymbol();
+            }
+        }
+
+        return nullptr;
+    }
+
+    // Helper to check if a type is a struct
+    static bool TypeIsStruct(cDeclNode *typeDecl)
+    {
+        if (typeDecl == nullptr) return false;
+        cDeclNode *resolvedType = typeDecl->GetType();
+        return dynamic_cast<cStructDeclNode*>(resolvedType) != nullptr;
+    }
+
+    // Helper to get path name from a varref (e.g., "bb.c" for bb.c.a access)
+    static std::string GetVarRefPath(cVarExprNode *varref)
+    {
+        std::string result = "";
+        for (int i = 0; i < varref->GetNumChildren(); i++)
+        {
+            cSymbol *sym = dynamic_cast<cSymbol*>(varref->GetChildAt(i));
+            if (sym != nullptr)
+            {
+                if (!result.empty()) result += ".";
+                result += sym->GetName();
+            }
+        }
+        return result;
+    }
 %}
 
 %start  program
@@ -318,13 +367,35 @@ func_header: func_prefix paramsspec ')'
                                               // Check return type
                                               if (existingFunc->GetType() != newFunc->GetType())
                                               {
-                                                  SemanticParseError(funcSym->GetName() + " previously declared with different return type");
+                                                  SemanticParseError(funcSym->GetName() + " previously defined with different return type");
                                               }
                                               
                                               // Check parameter count
                                               if (existingFunc->GetNumParams() != newFunc->GetNumParams())
                                               {
                                                   SemanticParseError(funcSym->GetName() + " redeclared with a different number of parameters");
+                                              }
+                                              else
+                                              {
+                                                  // Check parameter types (same count)
+                                                  cParamListNode* existingParams = existingFunc->GetParamList();
+                                                  cParamListNode* newParams = newFunc->GetParamList();
+                                                  if (existingParams != nullptr && newParams != nullptr)
+                                                  {
+                                                      bool typeMismatch = false;
+                                                      for (int pi = 0; pi < existingParams->GetNumDecls(); pi++)
+                                                      {
+                                                          cDeclNode* ep = existingParams->GetDecl(pi);
+                                                          cDeclNode* np = newParams->GetDecl(pi);
+                                                          if (ep != nullptr && np != nullptr && ep->GetType() != np->GetType())
+                                                          {
+                                                              typeMismatch = true;
+                                                              break;
+                                                          }
+                                                      }
+                                                      if (typeMismatch)
+                                                          SemanticParseError(funcSym->GetName() + " previously defined with different parameters");
+                                                  }
                                               }
                                           }
                                       }
@@ -350,7 +421,7 @@ func_header: func_prefix paramsspec ')'
                                           // Check return type
                                           if (existingFunc->GetType() != newFunc->GetType())
                                           {
-                                              SemanticParseError(funcSym->GetName() + " previously declared with different return type");
+                                              SemanticParseError(funcSym->GetName() + " previously defined with different return type");
                                           }
                                           
                                           // Check parameter count
@@ -377,7 +448,7 @@ func_prefix: TYPE_ID IDENTIFIER '('
                                       // Symbol exists in current scope - check if it's a function
                                       if (!existingLocal->IsFunc())
                                       {
-                                          SemanticParseError("Symbol " + *$2 + " already defined in current scope");
+                                          SemanticParseError(*$2 + " previously defined as other than a function");
                                           // Still create new symbol to continue
                                           useSym = new cSymbol(*$2);
                                           g_symbolTable.Insert(useSym);
@@ -444,7 +515,25 @@ stmt:       IF '(' expr ')' stmts ENDIF ';'
         |   PRINTS '(' STRING_LIT ')' ';'
                                 { $$ = new cPrintsNode($3); }
         |   varref '=' expr ';'
-                            { $$ = new cAssignNode($1, $3); }
+                            {
+                              // Check if varref is a function (not an lval)
+                              cVarExprNode *lhsRef = dynamic_cast<cVarExprNode*>($1);
+                              if (lhsRef != nullptr)
+                              {
+                                  // Get the symbol for the last element in the chain
+                                  int nc = lhsRef->GetNumChildren();
+                                  for (int ci = 0; ci < nc; ci++)
+                                  {
+                                      cSymbol *s = dynamic_cast<cSymbol*>(lhsRef->GetChildAt(ci));
+                                      if (s != nullptr && s->IsFunc())
+                                      {
+                                          SemanticParseError(s->GetName() + " is not an lval");
+                                          break;
+                                      }
+                                  }
+                              }
+                              $$ = new cAssignNode($1, $3);
+                            }
         |   func_call ';'
                             { $$ = (cStmtNode*)$1; }
         |   block
@@ -460,6 +549,11 @@ func_call:  IDENTIFIER '(' params ')'
                                       if (sym == nullptr) {
                                           sym = g_symbolTable.Find(*$1);
                                           if (sym != nullptr) {
+                                              // Check if it's a function
+                                              if (!sym->IsFunc())
+                                              {
+                                                  SemanticParseError(*$1 + " is not a function");
+                                              }
                                               // Symbol exists in outer scope - create local copy
                                               sym = new cSymbol(*$1);
                                               g_symbolTable.Insert(sym);
@@ -468,6 +562,10 @@ func_call:  IDENTIFIER '(' params ')'
                                               sym = new cSymbol(*$1);
                                               g_symbolTable.Insert(sym);
                                           }
+                                      }
+                                      else if (!sym->IsFunc())
+                                      {
+                                          SemanticParseError(*$1 + " is not a function");
                                       }
                                       CHECK_ERROR();
                                       $$ = new cFuncCallNode(sym, $3);
@@ -479,6 +577,11 @@ func_call:  IDENTIFIER '(' params ')'
                               if (sym == nullptr) {
                                   sym = g_symbolTable.Find(*$1);
                                   if (sym != nullptr) {
+                                      // Check if it's a function
+                                      if (!sym->IsFunc())
+                                      {
+                                          SemanticParseError(*$1 + " is not a function");
+                                      }
                                       // Symbol exists in outer scope - create local copy
                                       sym = new cSymbol(*$1);
                                       g_symbolTable.Insert(sym);
@@ -488,16 +591,61 @@ func_call:  IDENTIFIER '(' params ')'
                                       g_symbolTable.Insert(sym);
                                   }
                               }
+                              else if (!sym->IsFunc())
+                              {
+                                  SemanticParseError(*$1 + " is not a function");
+                              }
                               CHECK_ERROR();
                               $$ = new cFuncCallNode(sym);
                               delete $1;
                             }
 
-varref:   varref '.' varpart
+varref:   varref '.' IDENTIFIER
                                 { 
-                                  // Add the member symbol to the existing varref
-                                  ((cVarExprNode*)$1)->AddSymbol($3);
-                                  $$ = $1;
+                                    cVarExprNode *baseRef = (cVarExprNode*)$1;
+                                    cDeclNode *baseType = baseRef->GetType();
+                                    cSymbol *memberSym = nullptr;
+
+                                    // Check if any prior symbol in the chain has no decl (error recovery mode)
+                                    bool chainHasError = false;
+                                    for (int ci = 0; ci < baseRef->GetNumChildren(); ci++)
+                                    {
+                                        cSymbol *s = dynamic_cast<cSymbol*>(baseRef->GetChildAt(ci));
+                                        if (s != nullptr && s->GetDecl() == nullptr)
+                                        {
+                                            chainHasError = true;
+                                            break;
+                                        }
+                                    }
+
+                                    if (chainHasError || baseType == nullptr)
+                                    {
+                                        // Prior error in chain - silently create dummy
+                                        memberSym = new cSymbol(*$3);
+                                    }
+                                    else if (!TypeIsStruct(baseType))
+                                    {
+                                        // Base is not a struct
+                                        std::string baseName = GetVarRefPath(baseRef);
+                                        SemanticParseError(baseName + " is not a struct");
+                                        memberSym = new cSymbol(*$3);
+                                    }
+                                    else
+                                    {
+                                        memberSym = FindStructMemberSymbol(baseType, *$3);
+                                        if (memberSym == nullptr)
+                                        {
+                                            // Member not found in the struct
+                                            std::string baseName = GetVarRefPath(baseRef);
+                                            SemanticParseError(*$3 + " is not a field of " + baseName);
+                                            memberSym = new cSymbol(*$3);
+                                        }
+                                    }
+
+                                    baseRef->AddSymbol(memberSym);
+                                    $$ = $1;
+                                    delete $3;
+                                    CHECK_ERROR();
                                 }
         | varref '[' expr ']'
                             { 
@@ -606,8 +754,8 @@ int yyerror(const char *msg)
 // Function that gets called when a semantic error happens
 void SemanticParseError(std::string error)
 {
-    std::cout << "ERROR: " << error << " near line " 
-              << yylineno << "\n";
+    g_semanticErrors.push_back({yylineno, 
+        "ERROR: " + error + " near line " + std::to_string(yylineno)});
     g_semanticErrorHappened = true;
     yynerrs++;
 }

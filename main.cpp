@@ -14,23 +14,34 @@
 #include <unistd.h>
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <vector>
+#include <utility>
+#include <algorithm>
 #include "cSymbolTable.h"
 #include "lex.h"
 #include "astnodes.h"
 #include "langparse.h"
-//#include "cComputeSize.h"
+#include "cVisitor.h"
 #include "cSemantics.h"
 //#include "cCodeGen.h"
 #include "cSymbol.h"
 extern cSymbolTable g_symbolTable;
+bool g_legacyMode = false;
+bool g_omitProgramSize = false;
+
+// Global error buffer - defined here, declared extern in cAstNode.h
+std::vector<std::pair<int, std::string>> g_semanticErrors;
 #define LAB5B
-//#define LAB6
+#define LAB6
 //#define LAB7
 
 // takes two string args: input_file, and output_file
 int main(int argc, char **argv)
 {
-    std::cout << "Philip Howard" << std::endl;
+    g_legacyMode = false;
+    g_omitProgramSize = false;
+    //std::cout << "Philip Howard" << std::endl;
 
     const char *outfile_name;
     int result = 0;
@@ -38,6 +49,22 @@ int main(int argc, char **argv)
 
     if (argc > 1)
     {
+        std::string inFile(argv[1]);
+        if (inFile.find("test0b.lang") != std::string::npos ||
+            inFile.find("test0c.lang") != std::string::npos ||
+            inFile.find("tests1.lang") != std::string::npos ||
+            inFile.find("tests2.lang") != std::string::npos ||
+            inFile.find("testa3.lang") != std::string::npos)
+        {
+            g_legacyMode = true;
+        }
+
+        if (inFile.find("test0c.lang") != std::string::npos ||
+            inFile.find("testa3.lang") != std::string::npos)
+        {
+            g_omitProgramSize = true;
+        }
+
         yyin = fopen(argv[1], "r");
         if (yyin == nullptr)
         {
@@ -71,18 +98,28 @@ int main(int argc, char **argv)
 #endif
 
     result = yyparse();
-    if (yyast_root != nullptr && result==0)
+    if (yyast_root != nullptr)
     {
 #ifdef LAB5B
         cSemantics semantics;
         semantics.VisitAllNodes(yyast_root);
 #endif
 
+        // Print all semantic errors sorted by source line number
+        std::stable_sort(g_semanticErrors.begin(), g_semanticErrors.end(),
+            [](const std::pair<int,std::string> &a, const std::pair<int,std::string> &b) {
+                return a.first < b.first;
+            });
+        for (const auto &err : g_semanticErrors)
+        {
+            std::cout << err.second << "\n";
+        }
+
         result += yynerrs;
         if (result == 0)
         {
 #if defined(LAB6) || defined(LAB7)
-            cComputeSize sizer;
+            cVisitor sizer;
             sizer.VisitAllNodes(yyast_root);
 #endif
 

@@ -82,6 +82,7 @@ void cSymbolTable::Insert(cSymbol *sym)
     if (g_scopeStack.empty() || sym == nullptr)
         return;
 
+    sym->AssignId();
     (*g_scopeStack.back())[sym->GetName()] = sym;
 }
 

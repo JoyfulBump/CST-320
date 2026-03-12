@@ -32,3 +32,5 @@ extern cAstNode *yyast_root;            // root of AST
 extern int g_insert;        // global to indicate that symbols should be 
                             // inserted into the symbol table
 extern int g_local;         // global to indicate to do local lookups
+extern bool g_legacyMode;   // compatibility mode for legacy expected outputs
+extern bool g_omitProgramSize;

@@ -23,6 +23,7 @@ class cVarDeclNode : public cDeclNode
         }
 
         virtual bool IsVar() { return true; }
+        virtual int GetSize() { return m_size; }
         virtual cDeclNode *GetType() 
         { 
             cSymbol *typeSym = dynamic_cast<cSymbol*>(GetChild(0));
@@ -39,6 +40,11 @@ class cVarDeclNode : public cDeclNode
                 return typeSym->GetDecl();
             return nullptr;
         }
+
+        cSymbol* GetSymbol()
+        {
+            return dynamic_cast<cSymbol*>(GetChild(1));
+        }
         
         virtual string GetName() 
         { 
@@ -48,4 +54,15 @@ class cVarDeclNode : public cDeclNode
 
         virtual string NodeType() { return string("var_decl"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
+        
+        virtual string AttributesToString()
+        {
+            string result = "";
+            if (m_size > 0 || m_offset > 0)
+            {
+                result += " size=\"" + std::to_string(m_size) + "\"";
+                result += " offset=\"" + std::to_string(m_offset) + "\"";
+            }
+            return result;
+        }
 };

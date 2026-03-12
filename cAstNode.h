@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include <utility>
 
 using std::string;
 using std::vector;
@@ -21,6 +23,10 @@ using std::vector;
 // The following are defined in lex.h, but can't include due to circularity
 extern int yylineno;        // Need to be able to store line numbers
 extern int yynerrs;         // Increment on each semantic error
+
+// Global error buffer: stores (line_number, error_message) pairs
+// so that all semantic errors can be printed in source-order.
+extern std::vector<std::pair<int, std::string>> g_semanticErrors;
 
 // Declare the Semantic Error routine used at parse time.
 // By declaring it here, all AST node implementations have access to it.
@@ -141,8 +147,8 @@ class cAstNode
         // Used to print semantic errors
         void SemanticError(string message)
         {
-            std::cout << "ERROR: " << message << " near line " << m_LineNum 
-                << "\n";
+            g_semanticErrors.push_back({m_LineNum, 
+                "ERROR: " + message + " near line " + std::to_string(m_LineNum)});
             yynerrs++;
             m_hasSemanticError = true;
         }

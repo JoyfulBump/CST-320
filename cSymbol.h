@@ -14,9 +14,9 @@ class cSymbol : public cAstNode
 {
     public:
         // Construct a symbol given its name
-        cSymbol(string name)
+        cSymbol(string name) : cAstNode()
         {
-            m_id = ++nextId;
+            m_id = 0;  // Don't assign ID yet!
             m_name = name;
             m_decl = nullptr;
         }
@@ -29,6 +29,19 @@ class cSymbol : public cAstNode
         // Decl management
         void SetDecl(cDeclNode *decl) { m_decl = decl; }
         cDeclNode *GetDecl() { return m_decl; }
+        
+        // Type tracking
+        void SetIsType(bool t) { isType = t; }
+        bool IsType() const { return isType; }
+        
+        // Lazy ID assignment
+        void AssignId()
+        {
+            if (m_id == 0)
+            {
+                m_id = ++nextId;
+            }
+        }
         
         // Type checking - can be overridden by subclasses
         virtual bool IsArray()  { return m_decl != nullptr && m_decl->IsArray(); }
@@ -56,4 +69,5 @@ class cSymbol : public cAstNode
         long long m_id;             // Unique ID for this symbol
         string m_name;              // Symbol name
         cDeclNode *m_decl;          // Declaration node for this symbol
+        bool isType = false;        // Whether this symbol represents a type
 };

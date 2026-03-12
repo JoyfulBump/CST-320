@@ -14,7 +14,11 @@
 class cDeclNode : public cAstNode
 {
     public:
-        cDeclNode() : cAstNode() {}
+        cDeclNode() : cAstNode() 
+        {
+            m_size = 0;
+            m_offset = 0;
+        }
         
         // Type identification methods
         virtual bool IsArray()  { return false; }
@@ -28,6 +32,12 @@ class cDeclNode : public cAstNode
         virtual int  GetSize()  { return 0; }
         virtual cDeclNode *GetType() = 0;
         virtual string GetName() = 0;
+        
+        // Size and offset getters/setters
+        void SetSize(int size) { m_size = size; }
+        int GetDeclSize() { return m_size; }
+        void SetOffset(int offset) { m_offset = offset; }
+        int GetOffset() { return m_offset; }
         
         // Type compatibility checking
         // Returns true if 'type' can be assigned to 'this'
@@ -43,6 +53,9 @@ class cDeclNode : public cAstNode
             
             // Same type is always compatible
             if (thisType == otherType) return true;
+            
+            // Structs must be the exact same type
+            if (thisType->IsStruct() || otherType->IsStruct()) return false;
             
             // Check categories
             bool thisIsFloat = thisType->IsFloat();
@@ -72,4 +85,8 @@ class cDeclNode : public cAstNode
         
         // Decls are their own decl
         virtual cDeclNode *GetDecl() { return this; }
+        
+    protected:
+        int m_size;
+        int m_offset;
 };

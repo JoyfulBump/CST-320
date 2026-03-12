@@ -19,6 +19,9 @@ class cVarExprNode : public cExprNode
         cVarExprNode(cSymbol *symbol) : cExprNode()
         {
             AddChild(symbol);
+            m_size = 0;
+            m_offset = 0;
+            m_rowsizes = "";
         }
 
         // Method to add additional symbols (for member access like a.b)
@@ -53,10 +56,57 @@ class cVarExprNode : public cExprNode
         // GetType returns the type of the variable reference
         virtual cDeclNode *GetType()
         {
-            // For simple variable: return its type
-            cSymbol *sym = dynamic_cast<cSymbol*>(GetChild(0));
-            if (sym != nullptr && sym->GetDecl() != nullptr)
-                return sym->GetDecl()->GetType();
-            return nullptr;
+            cDeclNode *resultType = nullptr;
+            cSymbol *lastSym = nullptr;
+
+            for (int i = 0; i < NumChildren(); i++)
+            {
+                cSymbol *sym = dynamic_cast<cSymbol*>(GetChild(i));
+                if (sym != nullptr)
+                {
+                    lastSym = sym;
+                    if (sym->GetDecl() != nullptr)
+                    {
+                        resultType = sym->GetDecl()->GetType();
+                    }
+                }
+            }
+
+            // If the last symbol in the chain has no decl (unresolved reference),
+            // return nullptr to signal a type error
+            if (lastSym != nullptr && lastSym->GetDecl() == nullptr)
+            {
+                return nullptr;
+            }
+
+            return resultType;
         }
+        
+        // Size, offset, and rowsizes getters/setters
+        void SetSize(int size) { m_size = size; }
+        int GetSize() { return m_size; }
+        void SetOffset(int offset) { m_offset = offset; }
+        int GetOffset() { return m_offset; }
+        void SetRowsizes(string rowsizes) { m_rowsizes = rowsizes; }
+        string GetRowsizes() { return m_rowsizes; }
+        
+        virtual string AttributesToString()
+        {
+            string result = "";
+            if (m_size > 0 || m_offset > 0)
+            {
+                result += " size=\"" + std::to_string(m_size) + "\"";
+                result += " offset=\"" + std::to_string(m_offset) + "\"";
+                if (!m_rowsizes.empty())
+                {
+                    result += " rowsizes=\"" + m_rowsizes + "\"";
+                }
+            }
+            return result;
+        }
+        
+    protected:
+        int m_size;
+        int m_offset;
+        string m_rowsizes;
 };

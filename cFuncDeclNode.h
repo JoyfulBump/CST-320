@@ -49,6 +49,7 @@ class cFuncDeclNode : public cDeclNode
         }
 
         virtual bool IsFunc() { return true; }
+        virtual int GetSize() { return m_size; }
         virtual cDeclNode *GetType() 
         { 
             cSymbol *typeSym = dynamic_cast<cSymbol*>(GetChild(0));
@@ -137,4 +138,15 @@ class cFuncDeclNode : public cDeclNode
 
         virtual string NodeType() { return string("func"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
+        
+        virtual string AttributesToString()
+        {
+            string result = "";
+            if (m_size > 0 || m_offset > 0)
+            {
+                result += " size=\"" + std::to_string(m_size) + "\"";
+                result += " offset=\"" + std::to_string(m_offset) + "\"";
+            }
+            return result;
+        }
 };
