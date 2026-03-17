@@ -1,0 +1,17 @@
+// Ethan Chinander
+// Test 15: Variable usage in expressions
+// Tests: variables in arithmetic, variables in comparisons, multiple uses
+program
+{
+    int a;
+    int b;
+    int c;
+    
+    a = 3;
+    b = 4;
+    c = a + b;
+    
+    print(c);
+    print(a * b);
+    print(c - a);
+}

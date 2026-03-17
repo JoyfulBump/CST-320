@@ -1,0 +1,13 @@
+// Ethan Chinander
+// Test 07: While loop - simple counter
+// Tests: while loop execution, loop counter increment, loop termination
+program
+{
+    int i;
+    i = 0;
+    while (i < 3)
+    {
+        print(i);
+        i = i + 1;
+    }
+}

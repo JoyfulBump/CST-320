@@ -1,0 +1,25 @@
+// Ethan Chinander
+// Test 06: Logical operators
+// Tests: logical AND, logical OR
+program
+{
+    if (1 && 1)
+        print(1);
+    endif;
+    
+    if (1 && 0)
+        print(0);
+    else
+        print(2);
+    endif;
+    
+    if (0 || 1)
+        print(3);
+    endif;
+    
+    if (0 || 0)
+        print(0);
+    else
+        print(4);
+    endif;
+}

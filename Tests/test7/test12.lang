@@ -1,0 +1,10 @@
+// Ethan Chinander
+// Test 12: Complex expressions - operator precedence
+// Tests: multiple operations in single expression, precedence
+program
+{
+    print(2 + 3 * 4);
+    print((2 + 3) * 4);
+    print(20 - 5 - 3);
+    print(100 / 10 / 2);
+}

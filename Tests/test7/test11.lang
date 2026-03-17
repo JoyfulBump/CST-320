@@ -1,0 +1,11 @@
+// Ethan Chinander
+// Test 11: Negative numbers
+// Tests: unary minus, negative literals in expressions
+program
+{
+    int x;
+    x = -5;
+    print(x);
+    print(-10);
+    print(0 - 3);
+}

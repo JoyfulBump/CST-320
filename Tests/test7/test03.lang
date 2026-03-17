@@ -1,0 +1,12 @@
+// Ethan Chinander
+// Test 03: Multiple variables
+// Tests: declaring multiple variables, assigning and printing
+program
+{
+    int a;
+    int b;
+    a = 10;
+    b = 20;
+    print(a);
+    print(b);
+}

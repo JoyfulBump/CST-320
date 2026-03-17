@@ -1,0 +1,19 @@
+// Ethan Chinander
+// Test 14: Nested if/while statements
+// Tests: if inside while, multiple conditional branching
+program
+{
+    int i;
+    i = 0;
+    
+    while (i < 5)
+    {
+        if (i == 2)
+            print(10);
+        else
+            print(i);
+        endif;
+        
+        i = i + 1;
+    }
+}

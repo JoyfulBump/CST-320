@@ -15,7 +15,10 @@ OBJS=main.o \
 	 langparse.o \
 	 cVisitor.o \
 	 cSemantics.o \
-	 cSymbolTable.o
+	 cSymbolTable.o \
+	 emit.o \
+	 cCodeGen.o \
+	 cComputeSize.o
 
 all: lang
 
@@ -31,7 +34,7 @@ clean:
 .c.o:
 	g++ $(COPTS) $? -o $@
 
-main.o: main.cpp langparse.c langlex.c 
+main.o: main.cpp langlex.c langparse.c 
 	g++ $(COPTS) main.cpp -o $@
 
 langlex.o: langlex.c
@@ -48,6 +51,15 @@ lang: $(OBJS)
 
 cSymbolTable.o: cSymbolTable.cpp cSymbolTable.h cSymbol.h
 	g++ $(COPTS) cSymbolTable.cpp -o cSymbolTable.o
+
+emit.o: emit.cpp emit.h
+	g++ $(COPTS) emit.cpp -o emit.o
+
+cComputeSize.o: cComputeSize.cpp cComputeSize.h
+	g++ $(COPTS) cComputeSize.cpp -o cComputeSize.o
+
+cCodeGen.o: cCodeGen.cpp cCodeGen.h astnodes.h emit.h
+	g++ $(COPTS) cCodeGen.cpp -o cCodeGen.o
 
 cSemantics.o: cSemantics.cpp cSemantics.h cVisitor.h astnodes.h
 	g++ $(COPTS) cSemantics.cpp -o cSemantics.o

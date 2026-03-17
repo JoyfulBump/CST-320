@@ -1,0 +1,20 @@
+// Ethan Chinander
+// Test 09: If/else statements
+// Tests: if/else execution, branching logic
+program
+{
+    int x;
+    x = 2;
+    
+    if (x > 5)
+        print(1);
+    else
+        print(2);
+    endif;
+    
+    if (x == 2)
+        print(3);
+    else
+        print(0);
+    endif;
+}

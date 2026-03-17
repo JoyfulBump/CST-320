@@ -31,6 +31,23 @@ class cIfNode : public cStmtNode
             AddChild(falseStmts);
         }
 
+        cExprNode* GetCondition()
+        {
+            return static_cast<cExprNode*>(GetChild(0));
+        }
+
+        cStmtsNode* GetTrueStmts()
+        {
+            return static_cast<cStmtsNode*>(GetChild(1));
+        }
+
+        cStmtsNode* GetFalseStmts()
+        {
+            if (NumChildren() > 2)
+                return static_cast<cStmtsNode*>(GetChild(2));
+            return nullptr;
+        }
+
         virtual string NodeType() { return string("if"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
 };

@@ -9,9 +9,6 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
-// Define the static member
-long long cSymbol::nextId = 0;
-
 // Each scope is a hash table
 using SymbolMap = unordered_map<string, cSymbol*>;
 
@@ -54,6 +51,11 @@ cSymbolTable::cSymbolTable()
     Insert(doubleType);
 }
 
+void cSymbolTable::InitRootTable()
+{
+    // The constructor already initializes the root table with built-in types
+    // This method is here for compatibility
+}
 
 symbolTable_t *cSymbolTable::IncreaseScope()
 {

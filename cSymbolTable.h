@@ -16,6 +16,10 @@ class cSymbolTable
         // Construct an empty symbol table
         cSymbolTable();
 
+        // Initialize the root table (built-in types)
+        // Called in main after construction
+        void InitRootTable();
+
         // Increase the scope: add a level to the nested symbol table
         // Return value is the newly created scope
         symbolTable_t *IncreaseScope();

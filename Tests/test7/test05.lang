@@ -1,0 +1,21 @@
+// Ethan Chinander
+// Test 05: Comparison operators
+// Tests: less than, greater than, equal, not equal, less/greater or equal
+program
+{
+    if (5 > 3)
+        print(1);
+    endif;
+    
+    if (2 < 4)
+        print(2);
+    endif;
+    
+    if (7 == 7)
+        print(3);
+    endif;
+    
+    if (5 != 3)
+        print(4);
+    endif;
+}

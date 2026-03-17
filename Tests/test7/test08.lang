@@ -1,0 +1,18 @@
+// Ethan Chinander
+// Test 08: If statement without else
+// Tests: if condition true, if condition false
+program
+{
+    int x;
+    x = 5;
+    
+    if (x > 3)
+        print(1);
+    endif;
+    
+    if (x < 3)
+        print(0);
+    endif;
+    
+    print(2);
+}

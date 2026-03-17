@@ -85,6 +85,21 @@ class cBinaryExprNode : public cExprNode
             return (leftType->GetSize() >= rightType->GetSize()) ? leftType : rightType;
         }
 
+        cExprNode* GetLeft()
+        {
+            return static_cast<cExprNode*>(GetChild(0));
+        }
+
+        cOpNode* GetOp()
+        {
+            return static_cast<cOpNode*>(GetChild(1));
+        }
+
+        cExprNode* GetRight()
+        {
+            return static_cast<cExprNode*>(GetChild(2));
+        }
+
         virtual string NodeType() { return string("expr"); }
         virtual void Visit(cVisitor *visitor) { visitor->Visit(this); }
 };

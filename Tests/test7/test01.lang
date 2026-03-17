@@ -1,0 +1,9 @@
+// Ethan Chinander
+// Test 01: Basic print statements - foundation test
+// Tests: integer literals, simple print statements
+program
+{
+    print(1);
+    print(2);
+    print(3);
+}

@@ -1,0 +1,17 @@
+// Ethan Chinander
+// Test 10: Nested blocks with variable scoping
+// Tests: block scope, variable shadowing in nested blocks, ADJSP allocation
+program
+{
+    int x;
+    x = 1;
+    print(x);
+    
+    {
+        int y;
+        y = 2;
+        print(y);
+    }
+    
+    print(x);
+}
